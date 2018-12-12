@@ -6,14 +6,14 @@ The connexion is made to the NAS using the webapi. The required username and pas
 Command usage:
 check_cloudstation.php [-h -v] -H hostname [-P port] [-s] -u username -p password
 
-			List of options
-			    -H : hostname to be checked
-			    -P : port to connect to. Defaut is 5000 or 5001 if -s if set
-			    -u : username to connect to host
-			    -p : password to connect to host
-			    -s : activate https (http by default)
-			    -v : verbose. Activate debug info
-			    -h : print this help.
+List of options
+    -H : hostname to be checked
+    -P : port to connect to. Defaut is 5000 or 5001 if -s if set
+    -u : username to connect to host
+    -p : password to connect to host
+    -s : activate https (http by default)
+    -v : verbose. Activate debug info
+    -h : print this help.
 
 				
 Usage example in Nagios config:
