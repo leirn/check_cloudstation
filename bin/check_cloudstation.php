@@ -9,6 +9,7 @@
  * 
  * Existing statuses for tasks :
  * - uptodate : normal status
+ * - syncing : normal status
  * 
  ************************/
 
@@ -130,6 +131,9 @@ if(!isset($options['p'])) {echo "Password not defined.\n";print_help();exit;} el
 		if($debug) print_r($conn);	
 		echo "Connexion to ".$conn->server_name." is ".$conn->status.".\n";
 		if($conn->status === "uptodate")  { // Normal situation : task is up to date
+			$status_n = max(0, $status_n);
+		}
+		elseif($conn->status === "syncing")  { // Normal situation : task is syncing
 			$status_n = max(0, $status_n);
 		}
 		else { // Default value for unknow situation
