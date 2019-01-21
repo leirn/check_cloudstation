@@ -86,43 +86,30 @@ function getShareSyncStatus ($host, $port, $login, $pass, $ssl) {
     $obj = syno_request($server.'/webapi/query.cgi?api=SYNO.API.Info&method=Query&version=1&query='.$api);
     $path = $obj->data->{$api}->path;
 	
-	//list of known tasks
-	$obj = syno_request($server.'/webapi/'.$path.'?api='.$api.'&version=1&method=list&_sid='.$sid);
+	//get tray status
+	$obj = syno_request($server.'/webapi/'.$path.'?additional=["tray_status"]&api=SYNO.CloudStation.ShareSync.Connection&method=list&version=1&_sid='.$sid);
 	
-	$status = "OK";
-	$status_n = 0; // Service OK
-	
-	foreach($obj->data->conn as $conn) {
-		if($debug) print_r($conn);	
-		if($debug) echo "Connexion to ".$conn->server_name." is ".$conn->status.".\n";
-		if($conn->status === "syncing") {
-			$status = "WARNING";
-			$status_n = 1;
-		}
-		elseif($conn->status !== "uptodate") {
-			$status = "CRITICAL";
+	echo "Overall status : ";
+	switch($obj->data->tray_status) {
+		case "uptodate":
+			$status_n = 0;
+			break;
+		case "syncing":
+			$status_n = 0;
+			break;
+		case "err_ssl_change":
+		default:
 			$status_n = 2;
-		}
+			break;
 	}
-	//echo "\nCloudStation $status\n";
 	
-
 	//Get SYNO.API.Auth Path (recommended by Synology for further update)
     $obj = syno_request($server.'/webapi/query.cgi?api=SYNO.API.Info&method=Query&version=1&query=SYNO.API.Auth');
     $path = $obj->data->{'SYNO.API.Auth'}->path;
     
     //Logout and destroying SID
     $obj = syno_request($server.'/webapi/'.$path.'?api=SYNO.API.Auth&method=Logout&version='.$vAuth.'&session=HyperBackup&_sid='.$sid);
-    
-    /*
-		Nagios understands the following exit codes:
-		
-		0 - Service is OK.
-		1 - Service has a WARNING.
-		2 - Service is in a CRITICAL status.
-		3 - Service status is UNKNOWN.
-	*/
-    
+
     return $status_n;
 }
 

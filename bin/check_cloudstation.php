@@ -10,6 +10,7 @@
  * Existing statuses for tasks :
  * - uptodate : normal status
  * - syncing : normal status
+ * - err_ssl_change : critical status requiring human intervention
  * 
  ************************/
 
@@ -30,7 +31,7 @@ function print_help() {
 			"    -P : port to connect to. Defaut is 5000 or 5001 if -s if set\n".
 			"    -u : username to connect to host\n".
 			"    -p : password to connect to host\n".
-			"    -s : activate https (http by default)\n".
+			"    -s : activate http (http by default)\n".
 			"    -v : verbose. Activate debug info\n".
 			"    -h : print this help.\n";
 }
@@ -122,23 +123,45 @@ if(!isset($options['p'])) {echo "Password not defined.\n";print_help();exit;} el
     $obj = syno_request($server.'/webapi/query.cgi?api=SYNO.API.Info&method=Query&version=1&query='.$api);
     $path = $obj->data->{$api}->path;
 	
-	//list of known tasks
-	$obj = syno_request($server.'/webapi/'.$path.'?api='.$api.'&version=1&method=list&_sid='.$sid);
+	//get tray status
+	$obj = syno_request($server.'/webapi/'.$path.'?additional=["tray_status"]&api=SYNO.CloudStation.ShareSync.Connection&method=list&version=1&_sid='.$sid);
 	
-	$status_n = 0; // Service OK
+	foreach ($obj->data->conn as $val) {
+		echo $val->server_name." : ";
+		switch($val->status) {
+			case "err_ssl_change":
+				echo "SSL Certificate has been changed";
+			case "uptodate":
+			echo "Up to date.";
+				break;
+			case "syncing":
+				echo "Syncing";
+				break;
+			default:
+				echo "Unknown statys ".$val->status;
+				break;
+		}
+		echo "\n";
+	}
 	
-	foreach($obj->data->conn as $conn) {
-		if($debug) print_r($conn);	
-		echo "Connexion to ".$conn->server_name." is ".$conn->status.".\n";
-		if($conn->status === "uptodate")  { // Normal situation : task is up to date
-			$status_n = max(0, $status_n);
-		}
-		elseif($conn->status === "syncing")  { // Normal situation : task is syncing
-			$status_n = max(0, $status_n);
-		}
-		else { // Default value for unknow situation
-			$status_n = max(2, $status_n);
-		}
+	echo "Overall status : ";
+	switch($obj->data->tray_status) {
+		case "uptodate":
+			$status_n = 0;
+			echo "Up to date.";
+			break;
+		case "syncing":
+			$status_n = 0;
+			echo "Syncing.";
+			break;
+		case "err_ssl_change":
+			$status_n = 2;
+			echo "SSL Certificate has been changed.";
+			break;
+		default:
+			$status_n = 3;
+			echo "Unknown statys ".$obj->data->tray_status.".";
+			break;
 	}
 	
 	$nagios_status = array (
@@ -147,7 +170,7 @@ if(!isset($options['p'])) {echo "Password not defined.\n";print_help();exit;} el
 		2 => "CRITICAL",
 		3 => "UNKNOWN",
 		);
-	echo "\nCloudStation ".$nagios_status[$status_n]."\n";
+	echo " Status is ".$nagios_status[$status_n]."\n";
 	
 
 	//Get SYNO.API.Auth Path (recommended by Synology for further update)
